@@ -5,13 +5,10 @@ from datetime import datetime
 from functools import partial
 from typing import Type, cast
 
-from .llm import *
 
 from .operate import (
     chunking_by_token_size,
     extract_entities,
-    local_query,
-    global_query,
     hybrid_query,
     minirag_query,
     naive_query,
@@ -33,15 +30,31 @@ from .base import (
     QueryParam,
 )
 
-from .storage import (
-    JsonKVStorage,
-    NanoVectorDBStorage,
-    NetworkXStorage,
-)
 
-from .kg.neo4j_impl import Neo4JStorage
-
-from .kg.oracle_impl import OracleKVStorage, OracleGraphStorage, OracleVectorDBStorage
+STORAGES = {
+    "NetworkXStorage": ".kg.networkx_impl",
+    "JsonKVStorage": ".kg.json_kv_impl",
+    "NanoVectorDBStorage": ".kg.nano_vector_db_impl",
+    "JsonDocStatusStorage": ".kg.jsondocstatus_impl",
+    "Neo4JStorage": ".kg.neo4j_impl",
+    "OracleKVStorage": ".kg.oracle_impl",
+    "OracleGraphStorage": ".kg.oracle_impl",
+    "OracleVectorDBStorage": ".kg.oracle_impl",
+    "MilvusVectorDBStorge": ".kg.milvus_impl",
+    "MongoKVStorage": ".kg.mongo_impl",
+    "MongoGraphStorage": ".kg.mongo_impl",
+    "RedisKVStorage": ".kg.redis_impl",
+    "ChromaVectorDBStorage": ".kg.chroma_impl",
+    "TiDBKVStorage": ".kg.tidb_impl",
+    "TiDBVectorDBStorage": ".kg.tidb_impl",
+    "TiDBGraphStorage": ".kg.tidb_impl",
+    "PGKVStorage": ".kg.postgres_impl",
+    "PGVectorStorage": ".kg.postgres_impl",
+    "AGEStorage": ".kg.age_impl",
+    "PGGraphStorage": ".kg.postgres_impl",
+    "GremlinStorage": ".kg.gremlin_impl",
+    "PGDocStatusStorage": ".kg.postgres_impl",
+}
 
 # future KG integrations
 
@@ -50,16 +63,49 @@ from .kg.oracle_impl import OracleKVStorage, OracleGraphStorage, OracleVectorDBS
 # )
 
 
+def lazy_external_import(module_name: str, class_name: str):
+    """Lazily import a class from an external module based on the package of the caller."""
+
+    # Get the caller's module and package
+    import inspect
+
+    caller_frame = inspect.currentframe().f_back
+    module = inspect.getmodule(caller_frame)
+    package = module.__package__ if module else None
+
+    def import_class(*args, **kwargs):
+        import importlib
+
+        module = importlib.import_module(module_name, package=package)
+        cls = getattr(module, class_name)
+        return cls(*args, **kwargs)
+
+    return import_class
+
+
 def always_get_an_event_loop() -> asyncio.AbstractEventLoop:
+    """
+    Ensure that there is always an event loop available.
+
+    This function tries to get the current event loop. If the current event loop is closed or does not exist,
+    it creates a new event loop and sets it as the current event loop.
+
+    Returns:
+        asyncio.AbstractEventLoop: The current or newly created event loop.
+    """
     try:
-        return asyncio.get_event_loop()
+        # Try to get the current event loop
+        current_loop = asyncio.get_event_loop()
+        if current_loop.is_closed():
+            raise RuntimeError("Event loop is closed.")
+        return current_loop
 
     except RuntimeError:
+        # If no event loop exists or it is closed, create a new one
         logger.info("Creating a new event loop in main thread.")
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        return loop
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        return new_loop
 
 
 @dataclass
@@ -68,7 +114,6 @@ class MiniRAG:
         default_factory=lambda: f"./minirag_cache_{datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
     )
 
-    
     # RAGmode: str = 'minirag'
 
     kv_storage: str = field(default="JsonKVStorage")
@@ -100,12 +145,12 @@ class MiniRAG:
         }
     )
 
-    embedding_func: EmbeddingFunc = field(default_factory=lambda: openai_embedding)
+    embedding_func: EmbeddingFunc = None
     embedding_batch_num: int = 32
     embedding_func_max_async: int = 16
 
     # LLM
-    llm_model_func: callable = hf_model_complete#gpt_4o_mini_complete  # 
+    llm_model_func: callable = None
     llm_model_name: str = "meta-llama/Llama-3.2-1B-Instruct"  #'meta-llama/Llama-3.2-1B'#'google/gemma-2-2b-it'
     llm_model_max_token_size: int = 32768
     llm_model_max_async: int = 16
@@ -120,27 +165,55 @@ class MiniRAG:
     addon_params: dict = field(default_factory=dict)
     convert_response_to_json_func: callable = convert_response_to_json
 
+    # Add new field for document status storage type
+    doc_status_storage: str = field(default="JsonDocStatusStorage")
+
+    # Custom Chunking Function
+    chunking_func: callable = chunking_by_token_size
+    chunking_func_kwargs: dict = field(default_factory=dict)
+
     def __post_init__(self):
         log_file = os.path.join(self.working_dir, "minirag.log")
         set_logger(log_file)
         logger.setLevel(self.log_level)
 
         logger.info(f"Logger initialized for working directory: {self.working_dir}")
+        if not os.path.exists(self.working_dir):
+            logger.info(f"Creating working directory {self.working_dir}")
+            os.makedirs(self.working_dir)
 
-        _print_config = ",\n  ".join([f"{k} = {v}" for k, v in asdict(self).items()])
+        # show config
+        global_config = asdict(self)
+        _print_config = ",\n  ".join([f"{k} = {v}" for k, v in global_config.items()])
         logger.debug(f"MiniRAG init with param:\n  {_print_config}\n")
 
         # @TODO: should move all storage setup here to leverage initial start params attached to self.
 
         self.key_string_value_json_storage_cls: Type[BaseKVStorage] = (
-            self._get_storage_class()[self.kv_storage]
+            self._get_storage_class(self.kv_storage)
         )
-        self.vector_db_storage_cls: Type[BaseVectorStorage] = self._get_storage_class()[
+        self.vector_db_storage_cls: Type[BaseVectorStorage] = self._get_storage_class(
             self.vector_storage
-        ]
-        self.graph_storage_cls: Type[BaseGraphStorage] = self._get_storage_class()[
+        )
+        self.graph_storage_cls: Type[BaseGraphStorage] = self._get_storage_class(
             self.graph_storage
-        ]
+        )
+
+        self.key_string_value_json_storage_cls = partial(
+            self.key_string_value_json_storage_cls, global_config=global_config
+        )
+
+        self.vector_db_storage_cls = partial(
+            self.vector_db_storage_cls, global_config=global_config
+        )
+
+        self.graph_storage_cls = partial(
+            self.graph_storage_cls, global_config=global_config
+        )
+        self.json_doc_status_storage = self.key_string_value_json_storage_cls(
+            namespace="json_doc_status_storage",
+            embedding_func=None,
+        )
 
         if not os.path.exists(self.working_dir):
             logger.info(f"Creating working directory {self.working_dir}")
@@ -188,15 +261,13 @@ class MiniRAG:
             embedding_func=self.embedding_func,
             meta_fields={"entity_name"},
         )
-        global_config=asdict(self)
+        global_config = asdict(self)
 
-        self.entity_name_vdb = (
-            self.vector_db_storage_cls(
-                namespace="entities_name",
-                global_config=asdict(self),
-                embedding_func=self.embedding_func,
-                meta_fields={"entity_name"}
-            )
+        self.entity_name_vdb = self.vector_db_storage_cls(
+            namespace="entities_name",
+            global_config=asdict(self),
+            embedding_func=self.embedding_func,
+            meta_fields={"entity_name"},
         )
 
         self.relationships_vdb = self.vector_db_storage_cls(
@@ -218,21 +289,38 @@ class MiniRAG:
                 **self.llm_model_kwargs,
             )
         )
+        # Initialize document status storage
+        self.doc_status_storage_cls = self._get_storage_class(self.doc_status_storage)
+        self.doc_status = self.doc_status_storage_cls(
+            namespace="doc_status",
+            global_config=global_config,
+            embedding_func=None,
+        )
 
-    def _get_storage_class(self) -> Type[BaseGraphStorage]:
-        return {
-            # kv storage
-            "JsonKVStorage": JsonKVStorage,
-            "OracleKVStorage": OracleKVStorage,
-            # vector storage
-            "NanoVectorDBStorage": NanoVectorDBStorage,
-            "OracleVectorDBStorage": OracleVectorDBStorage,
-            # graph storage
-            "NetworkXStorage": NetworkXStorage,
-            "Neo4JStorage": Neo4JStorage,
-            "OracleGraphStorage": OracleGraphStorage,
-            # "ArangoDBStorage": ArangoDBStorage
-        }
+    def _get_storage_class(self, storage_name: str) -> dict:
+        import_path = STORAGES[storage_name]
+        storage_class = lazy_external_import(import_path, storage_name)
+        return storage_class
+
+    def set_storage_client(self, db_client):
+        # Now only tested on Oracle Database
+        for storage in [
+            self.vector_db_storage_cls,
+            self.graph_storage_cls,
+            self.doc_status,
+            self.full_docs,
+            self.text_chunks,
+            self.llm_response_cache,
+            self.key_string_value_json_storage_cls,
+            self.chunks_vdb,
+            self.relationships_vdb,
+            self.entities_vdb,
+            self.graph_storage_cls,
+            self.chunk_entity_relation_graph,
+            self.llm_response_cache,
+        ]:
+            # set client
+            storage.db = db_client
 
     def insert(self, string_or_strings):
         loop = always_get_an_event_loop()

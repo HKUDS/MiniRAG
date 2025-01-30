@@ -6,7 +6,23 @@ from collections import Counter, defaultdict
 import warnings
 import json_repair
 
-from .utils import *
+from .utils import (
+    list_of_list_to_csv,
+    truncate_list_by_token_size,
+    split_string_by_multi_markers,
+    logger,
+    locate_json_string_body_from_string,
+    process_combine_contexts,
+    clean_str,
+    edge_vote_path,
+    encode_string_by_tiktoken,
+    decode_tokens_by_tiktoken,
+    is_float_regex,
+    pack_user_ass_to_openai_messages,
+    compute_mdhash_id,
+    calculate_similarity,
+    cal_path_score_list,
+)
 from .base import (
     BaseGraphStorage,
     BaseKVStorage,
@@ -43,17 +59,12 @@ async def _handle_entity_relation_summary(
     description: str,
     global_config: dict,
 ) -> str:
-    
-    use_llm_func: callable = global_config["llm_model_func"]
-    llm_max_tokens = global_config["llm_model_max_token_size"]
     tiktoken_model_name = global_config["tiktoken_model_name"]
     summary_max_tokens = global_config["entity_summary_to_max_tokens"]
 
     tokens = encode_string_by_tiktoken(description, model_name=tiktoken_model_name)
     if len(tokens) < summary_max_tokens:  # No need for summary
         return description
-
-
 
 
 async def _handle_single_entity_extraction(
@@ -236,7 +247,7 @@ async def extract_entities(
     #     entity_extract_prompt = PROMPTS["entity_extraction"]
     # else:
     entity_extract_prompt = PROMPTS["entity_extraction"]
-    
+
     context_base = dict(
         tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],
         record_delimiter=PROMPTS["DEFAULT_RECORD_DELIMITER"],
@@ -244,7 +255,7 @@ async def extract_entities(
         entity_types=",".join(PROMPTS["DEFAULT_ENTITY_TYPES"]),
     )
     continue_prompt = PROMPTS["entiti_continue_extraction"]
-    
+
     if_loop_prompt = PROMPTS["entiti_if_loop_extraction"]
 
     already_processed = 0
@@ -260,7 +271,7 @@ async def extract_entities(
         final_result = await use_llm_func(hint_prompt)
 
         history = pack_user_ass_to_openai_messages(hint_prompt, final_result)
-        for now_glean_index in range(entity_extract_max_gleaning):      
+        for now_glean_index in range(entity_extract_max_gleaning):
             glean_result = await use_llm_func(continue_prompt, history_messages=history)
 
             history += pack_user_ass_to_openai_messages(continue_prompt, glean_result)
@@ -1021,14 +1032,16 @@ def combine_contexts(high_level_context, low_level_context):
         ll_entities, ll_relationships, ll_sources = extract_sections(low_level_context)
 
     # Combine and deduplicate the entities
-    
+
     combined_entities = process_combine_contexts(hl_entities, ll_entities)
     combined_entities = chunking_by_token_size(combined_entities, max_token_size=2000)
     # Combine and deduplicate the relationships
     combined_relationships = process_combine_contexts(
         hl_relationships, ll_relationships
     )
-    combined_relationships = chunking_by_token_size(combined_relationships, max_token_size=2000)
+    combined_relationships = chunking_by_token_size(
+        combined_relationships, max_token_size=2000
+    )
     # Combine and deduplicate the sources
     combined_sources = process_combine_contexts(hl_sources, ll_sources)
     combined_sources = chunking_by_token_size(combined_sources, max_token_size=2000)
@@ -1097,17 +1110,14 @@ async def naive_query(
     return response
 
 
-
-
-
-
-
-async def path2chunk(scored_edged_reasoning_path,knowledge_graph_inst, pairs_append, query,max_chunks = 5):
+async def path2chunk(
+    scored_edged_reasoning_path, knowledge_graph_inst, pairs_append, query, max_chunks=5
+):
     already_node = {}
-    for k,v in scored_edged_reasoning_path.items():
+    for k, v in scored_edged_reasoning_path.items():
         node_chunk_id = None
 
-        for pathtuple,scorelist in v['Path'].items():
+        for pathtuple, scorelist in v["Path"].items():
             if pathtuple in pairs_append:
                 use_edge = pairs_append[pathtuple]
                 edge_datas = []
@@ -1116,106 +1126,116 @@ async def path2chunk(scored_edged_reasoning_path,knowledge_graph_inst, pairs_app
                 )
                 text_units = [
                     split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
-                    for dp in edge_datas#chunk ID
+                    for dp in edge_datas  # chunk ID
                 ][0]
-                
+
             else:
                 use_edge = []
-                text_units =[]
-            
+                text_units = []
+
             node_datas = await asyncio.gather(
                 *[knowledge_graph_inst.get_node(pathtuple[0])]
             )
-            for dp in node_datas:               
-                text_units_node = split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
-                text_units  = text_units+text_units_node
+            for dp in node_datas:
+                text_units_node = split_string_by_multi_markers(
+                    dp["source_id"], [GRAPH_FIELD_SEP]
+                )
+                text_units = text_units + text_units_node
 
             node_datas = await asyncio.gather(
                 *[knowledge_graph_inst.get_node(ents) for ents in pathtuple[1:]]
             )
-            if query != None: 
-                for dp in node_datas:               
-                    text_units_node = split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
-                    descriptionlist_node =  split_string_by_multi_markers(dp["description"], [GRAPH_FIELD_SEP])
+            if query is not None:
+                for dp in node_datas:
+                    text_units_node = split_string_by_multi_markers(
+                        dp["source_id"], [GRAPH_FIELD_SEP]
+                    )
+                    descriptionlist_node = split_string_by_multi_markers(
+                        dp["description"], [GRAPH_FIELD_SEP]
+                    )
                     if descriptionlist_node[0] not in already_node.keys():
-
                         already_node[descriptionlist_node[0]] = None
-                        
+
                         if len(text_units_node) == len(descriptionlist_node):
-                            if len(text_units_node)>5:
-                                max_ids = int(max(5,len(text_units_node)/2))
-                                should_consider_idx = calculate_similarity(descriptionlist_node, query,k = max_ids)
-                                text_units_node = [text_units_node[i] for i in should_consider_idx]
+                            if len(text_units_node) > 5:
+                                max_ids = int(max(5, len(text_units_node) / 2))
+                                should_consider_idx = calculate_similarity(
+                                    descriptionlist_node, query, k=max_ids
+                                )
+                                text_units_node = [
+                                    text_units_node[i] for i in should_consider_idx
+                                ]
                                 already_node[descriptionlist_node[0]] = text_units_node
                     else:
                         text_units_node = already_node[descriptionlist_node[0]]
-                    if text_units_node != None:
-                        text_units  = text_units+text_units_node
+                    if text_units_node is not None:
+                        text_units = text_units + text_units_node
 
             count_dict = Counter(text_units)
-            total_score = scorelist[0]+scorelist[1]+1
+            total_score = scorelist[0] + scorelist[1] + 1
             for key, value in count_dict.items():
                 count_dict[key] = value * total_score
-            if node_chunk_id == None:
+            if node_chunk_id is None:
                 node_chunk_id = count_dict
             else:
-                node_chunk_id = node_chunk_id+count_dict
-        v['Path'] = []
-        if node_chunk_id == None:
-            node_datas = await asyncio.gather(
-                *[knowledge_graph_inst.get_node(k)]
-            )
+                node_chunk_id = node_chunk_id + count_dict
+        v["Path"] = []
+        if node_chunk_id is None:
+            node_datas = await asyncio.gather(*[knowledge_graph_inst.get_node(k)])
             for dp in node_datas:
-                text_units_node = split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
+                text_units_node = split_string_by_multi_markers(
+                    dp["source_id"], [GRAPH_FIELD_SEP]
+                )
                 count_dict = Counter(text_units_node)
-            
+
             for id in count_dict.most_common(max_chunks):
-                v['Path'].append(id[0])
+                v["Path"].append(id[0])
             # v['Path'] = count_dict.most_common(max_chunks)#[]
         else:
             for id in count_dict.most_common(max_chunks):
-                v['Path'].append(id[0])
+                v["Path"].append(id[0])
             # v['Path'] = node_chunk_id.most_common(max_chunks)
     return scored_edged_reasoning_path
 
+
 def scorednode2chunk(input_dict, values_dict):
     for key, value_list in input_dict.items():
-        input_dict[key] = [values_dict.get(val, None) for val in value_list if val in values_dict]
+        input_dict[key] = [
+            values_dict.get(val, None) for val in value_list if val in values_dict
+        ]
         input_dict[key] = [val for val in input_dict[key] if val is not None]
 
 
-def kwd2chunk(ent_from_query_dict,chunks_ids,chunk_nums):
-        final_chunk = Counter()
-        final_chunk_id = []
-        for key,list_of_dicts in ent_from_query_dict.items():
+def kwd2chunk(ent_from_query_dict, chunks_ids, chunk_nums):
+    final_chunk = Counter()
+    final_chunk_id = []
+    for key, list_of_dicts in ent_from_query_dict.items():
+        total_id_scores = Counter()
+        id_scores_list = []
+        id_scores = {}
+        for d in list_of_dicts:
+            if d == list_of_dicts[0]:
+                score = d["Score"] * 2
+            else:
+                score = d["Score"]
+            path = d["Path"]
 
-            total_id_scores = Counter()
-            id_scores_list = []
-            id_scores = {}
-            for d in list_of_dicts:
-                if d == list_of_dicts[0]:       
-                    score = d['Score']*2
+            for id in path:
+                if id == path[0] and id in chunks_ids:
+                    score = score * 10
+                if id in id_scores:
+                    id_scores[id] += score
                 else:
-                    score = d['Score']
-                path = d['Path']
+                    id_scores[id] = score
+        id_scores_list.append(id_scores)
 
-                for id in path:
-                    if id == path[0] and id in chunks_ids:
-                        score = score*10
-                    if id in id_scores:
-                        id_scores[id] += score
-                    else:
-                        id_scores[id] = score
-            id_scores_list.append(id_scores)
-            
-            for scores in id_scores_list:
-                total_id_scores.update(scores)
-            final_chunk = final_chunk+total_id_scores#.most_common(3)
+        for scores in id_scores_list:
+            total_id_scores.update(scores)
+        final_chunk = final_chunk + total_id_scores  # .most_common(3)
 
-        for i in final_chunk.most_common(chunk_nums):
-            final_chunk_id.append(i[0])
-        return final_chunk_id
-    
+    for i in final_chunk.most_common(chunk_nums):
+        final_chunk_id.append(i[0])
+    return final_chunk_id
 
 
 async def _build_mini_query_context(
@@ -1231,61 +1251,92 @@ async def _build_mini_query_context(
     embedder,
     query_param: QueryParam,
 ):
-
     imp_ents = []
     nodes_from_query_list = []
     ent_from_query_dict = {}
-    
+
     for ent in ent_from_query:
         ent_from_query_dict[ent] = []
         results_node = await entity_name_vdb.query(ent, top_k=query_param.top_k)
 
         nodes_from_query_list.append(results_node)
-        ent_from_query_dict[ent] = [e['entity_name'] for e in results_node]
+        ent_from_query_dict[ent] = [e["entity_name"] for e in results_node]
 
-
-    candidate_reasoning_path =  {}
+    candidate_reasoning_path = {}
 
     for results_node_list in nodes_from_query_list:
-        candidate_reasoning_path_new = {key['entity_name']: {'Score': key['distance'], 'Path':[]} for key in results_node_list}
-        
-        candidate_reasoning_path = {**candidate_reasoning_path, **candidate_reasoning_path_new}
+        candidate_reasoning_path_new = {
+            key["entity_name"]: {"Score": key["distance"], "Path": []}
+            for key in results_node_list
+        }
+
+        candidate_reasoning_path = {
+            **candidate_reasoning_path,
+            **candidate_reasoning_path_new,
+        }
     for key in candidate_reasoning_path.keys():
-        candidate_reasoning_path[key]['Path'] = await knowledge_graph_inst.get_neighbors_within_k_hops(key,2)
+        candidate_reasoning_path[key][
+            "Path"
+        ] = await knowledge_graph_inst.get_neighbors_within_k_hops(key, 2)
         imp_ents.append(key)
 
-    short_path_entries = {name: entry for name, entry in candidate_reasoning_path.items() if len(entry['Path']) < 1}
-    sorted_short_path_entries = sorted(short_path_entries.items(), key=lambda x: x[1]['Score'], reverse=True) 
-    save_p = max(1, int(len(sorted_short_path_entries) * 0.2))  
+    short_path_entries = {
+        name: entry
+        for name, entry in candidate_reasoning_path.items()
+        if len(entry["Path"]) < 1
+    }
+    sorted_short_path_entries = sorted(
+        short_path_entries.items(), key=lambda x: x[1]["Score"], reverse=True
+    )
+    save_p = max(1, int(len(sorted_short_path_entries) * 0.2))
     top_short_path_entries = sorted_short_path_entries[:save_p]
     top_short_path_dict = {name: entry for name, entry in top_short_path_entries}
-    long_path_entries = {name: entry for name, entry in candidate_reasoning_path.items() if len(entry['Path']) >= 1}
+    long_path_entries = {
+        name: entry
+        for name, entry in candidate_reasoning_path.items()
+        if len(entry["Path"]) >= 1
+    }
     candidate_reasoning_path = {**long_path_entries, **top_short_path_dict}
-    node_datas_from_type = await knowledge_graph_inst.get_node_from_types(type_keywords)#entity_type, description,...
+    node_datas_from_type = await knowledge_graph_inst.get_node_from_types(
+        type_keywords
+    )  # entity_type, description,...
 
+    maybe_answer_list = [n["entity_name"] for n in node_datas_from_type]
+    imp_ents = imp_ents + maybe_answer_list
+    scored_reasoning_path = cal_path_score_list(
+        candidate_reasoning_path, maybe_answer_list
+    )
 
-    maybe_answer_list = [n['entity_name'] for n in node_datas_from_type]
-    imp_ents = imp_ents+maybe_answer_list
-    scored_reasoning_path = cal_path_score_list(candidate_reasoning_path, maybe_answer_list)
-
-    results_edge = await relationships_vdb.query(originalquery, top_k=len(ent_from_query)*query_param.top_k)
+    results_edge = await relationships_vdb.query(
+        originalquery, top_k=len(ent_from_query) * query_param.top_k
+    )
     goodedge = []
     badedge = []
     for item in results_edge:
-        if item['src_id'] in imp_ents or item['tgt_id'] in imp_ents:
+        if item["src_id"] in imp_ents or item["tgt_id"] in imp_ents:
             goodedge.append(item)
         else:
             badedge.append(item)
-    scored_edged_reasoning_path,pairs_append = edge_vote_path(scored_reasoning_path,goodedge)
-    scored_edged_reasoning_path = await path2chunk(scored_edged_reasoning_path,knowledge_graph_inst,pairs_append,originalquery,max_chunks=3)
-
+    scored_edged_reasoning_path, pairs_append = edge_vote_path(
+        scored_reasoning_path, goodedge
+    )
+    scored_edged_reasoning_path = await path2chunk(
+        scored_edged_reasoning_path,
+        knowledge_graph_inst,
+        pairs_append,
+        originalquery,
+        max_chunks=3,
+    )
 
     entites_section_list = []
     node_datas = await asyncio.gather(
-        *[knowledge_graph_inst.get_node(entity_name) for entity_name in scored_edged_reasoning_path.keys()]
+        *[
+            knowledge_graph_inst.get_node(entity_name)
+            for entity_name in scored_edged_reasoning_path.keys()
+        ]
     )
     node_datas = [
-        {**n, "entity_name": k,"Score": scored_edged_reasoning_path[k]["Score"]}
+        {**n, "entity_name": k, "Score": scored_edged_reasoning_path[k]["Score"]}
         for k, n in zip(scored_edged_reasoning_path.keys(), node_datas)
     ]
     for i, n in enumerate(node_datas):
@@ -1296,7 +1347,9 @@ async def _build_mini_query_context(
                 n.get("description", "UNKNOWN"),
             ]
         )
-    entites_section_list = sorted(entites_section_list, key=lambda x: x[1], reverse=True)
+    entites_section_list = sorted(
+        entites_section_list, key=lambda x: x[1], reverse=True
+    )
     entites_section_list = truncate_list_by_token_size(
         entites_section_list,
         key=lambda x: x[2],
@@ -1308,30 +1361,27 @@ async def _build_mini_query_context(
 
     scorednode2chunk(ent_from_query_dict, scored_edged_reasoning_path)
 
-
-    results = await chunks_vdb.query(originalquery, top_k=int(query_param.top_k/2))
+    results = await chunks_vdb.query(originalquery, top_k=int(query_param.top_k / 2))
     chunks_ids = [r["id"] for r in results]
-    final_chunk_id = kwd2chunk(ent_from_query_dict,chunks_ids,chunk_nums = int(query_param.top_k/2))
+    final_chunk_id = kwd2chunk(
+        ent_from_query_dict, chunks_ids, chunk_nums=int(query_param.top_k / 2)
+    )
 
     if not len(results_node):
         return None
-    
+
     if not len(results_edge):
         return None
-    
+
     use_text_units = await asyncio.gather(
         *[text_chunks_db.get_by_id(id) for id in final_chunk_id]
     )
     text_units_section_list = [["id", "content"]]
 
     for i, t in enumerate(use_text_units):
-        if t != None:
+        if t is not None:
             text_units_section_list.append([i, t["content"]])
     text_units_context = list_of_list_to_csv(text_units_section_list)
-
-
-
-
 
     return f"""
 -----Entities-----
@@ -1345,7 +1395,7 @@ async def _build_mini_query_context(
 """
 
 
-async def minirag_query(#MiniRAG
+async def minirag_query(  # MiniRAG
     query,
     knowledge_graph_inst: BaseGraphStorage,
     entities_vdb: BaseVectorStorage,
@@ -1359,20 +1409,25 @@ async def minirag_query(#MiniRAG
 ) -> str:
     use_model_func = global_config["llm_model_func"]
     kw_prompt_temp = PROMPTS["minirag_query2kwd"]
-    TYPE_POOL,TYPE_POOL_w_CASE = await knowledge_graph_inst.get_types()
-    kw_prompt = kw_prompt_temp.format(query=query,TYPE_POOL = TYPE_POOL)
+    TYPE_POOL, TYPE_POOL_w_CASE = await knowledge_graph_inst.get_types()
+    kw_prompt = kw_prompt_temp.format(query=query, TYPE_POOL=TYPE_POOL)
     result = await use_model_func(kw_prompt)
 
     try:
         keywords_data = json_repair.loads(result)
-        
+
         type_keywords = keywords_data.get("answer_type_keywords", [])
         entities_from_query = keywords_data.get("entities_from_query", [])[:5]
 
-    except json_repair.JSONDecodeError as e:
+    except json_repair.JSONDecodeError:
         try:
-            result = result.replace(kw_prompt[:-1],'').replace('user','').replace('model','').strip()
-            result = '{' + result.split('{')[1].split('}')[0] + '}'
+            result = (
+                result.replace(kw_prompt[:-1], "")
+                .replace("user", "")
+                .replace("model", "")
+                .strip()
+            )
+            result = "{" + result.split("{")[1].split("}")[0] + "}"
             keywords_data = json_repair.loads(result)
             type_keywords = keywords_data.get("answer_type_keywords", [])
             entities_from_query = keywords_data.get("entities_from_query", [])[:5]

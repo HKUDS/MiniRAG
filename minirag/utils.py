@@ -286,8 +286,6 @@ def process_combine_contexts(hl, ll):
     return combined_sources
 
 
-
-
 def is_continuous_subsequence(subseq, seq):
     def find_all_indexes(tup, value):
         indexes = []
@@ -301,38 +299,36 @@ def is_continuous_subsequence(subseq, seq):
                 break
         return indexes
 
-    index_list = find_all_indexes(seq,subseq[0])
+    index_list = find_all_indexes(seq, subseq[0])
     for idx in index_list:
-        if idx!=len(seq)-1:
-            if seq[idx+1]==subseq[-1]:
+        if idx != len(seq) - 1:
+            if seq[idx + 1] == subseq[-1]:
                 return True
     return False
-
 
 
 def merge_tuples(list1, list2):
     result = []
     for tup in list1:
-    
         last_element = tup[-1]
         if last_element in tup[:-1]:
             result.append(tup)
         else:
-
             matching_tuples = [t for t in list2 if t[0] == last_element]
-   
+
             already_match_flag = 0
             for match in matching_tuples:
+                matchh = (match[1], match[0])
+                if is_continuous_subsequence(match, tup) or is_continuous_subsequence(
+                    matchh, tup
+                ):
+                    continue
 
-                matchh = (match[1],match[0])
-                if is_continuous_subsequence(match, tup) or is_continuous_subsequence(matchh, tup):
-                    continue  
-                
                 already_match_flag = 1
                 merged_tuple = tup + match[1:]
 
                 result.append(merged_tuple)
-            
+
             if not already_match_flag:
                 result.append(tup)
     return result
@@ -343,85 +339,86 @@ def count_elements_in_tuple(tuple_elements, list_elements):
     tuple_elements = sorted(tuple_elements)
     count = 0
     list_index = 0
-    
+
     for elem in tuple_elements:
         while list_index < len(sorted_list) and sorted_list[list_index] < elem:
             list_index += 1
         if list_index < len(sorted_list) and sorted_list[list_index] == elem:
             count += 1
-            list_index += 1  
+            list_index += 1
     return count
 
 
 def cal_path_score_list(candidate_reasoning_path, maybe_answer_list):
     scored_reasoning_path = {}
-    for k,v in candidate_reasoning_path.items():
-        score = v['Score']
-        paths = v['Path']
+    for k, v in candidate_reasoning_path.items():
+        score = v["Score"]
+        paths = v["Path"]
         scores = {}
         for p in paths:
             scores[p] = [count_elements_in_tuple(p, maybe_answer_list)]
-        scored_reasoning_path[k] = {'Score': score, 'Path': scores}
+        scored_reasoning_path[k] = {"Score": score, "Path": scores}
     return scored_reasoning_path
 
 
-
-
-def edge_vote_path(path_dict,edge_list):
+def edge_vote_path(path_dict, edge_list):
     return_dict = copy.deepcopy(path_dict)
     EDGELIST = []
     pairs_append = {}
     for i in edge_list:
-        EDGELIST.append((i['src_id'],i['tgt_id']))
+        EDGELIST.append((i["src_id"], i["tgt_id"]))
     for i in return_dict.items():
-        for j in i[1]['Path'].items():
+        for j in i[1]["Path"].items():
             if j[1]:
                 count = 0
-                
+
                 for pairs in EDGELIST:
-                    
-                    if is_continuous_subsequence(pairs,j[0]):
-                        count = count+1
+                    if is_continuous_subsequence(pairs, j[0]):
+                        count = count + 1
                         if j[0] not in pairs_append:
                             pairs_append[j[0]] = [pairs]
                         else:
                             pairs_append[j[0]].append(pairs)
 
-                #score
+                # score
                 j[1].append(count)
-    return return_dict,pairs_append
-
+    return return_dict, pairs_append
 
 
 from nltk.metrics import edit_distance
 from rouge import Rouge
 
-def calculate_similarity(sentences, target, method='levenshtein', n=1, k=1):
+
+def calculate_similarity(sentences, target, method="levenshtein", n=1, k=1):
     target_tokens = target.lower().split()
     similarities_with_index = []
-    
-    if method == 'jaccard':
+
+    if method == "jaccard":
         for i, sentence in enumerate(sentences):
             sentence_tokens = sentence.lower().split()
             intersection = set(sentence_tokens).intersection(set(target_tokens))
             union = set(sentence_tokens).union(set(target_tokens))
             jaccard_score = len(intersection) / len(union) if union else 0
             similarities_with_index.append((i, jaccard_score))
-    
-    elif method == 'levenshtein':
+
+    elif method == "levenshtein":
         for i, sentence in enumerate(sentences):
             distance = edit_distance(target_tokens, sentence.lower().split())
-            similarities_with_index.append((i, 1 - (distance / max(len(target_tokens), len(sentence.split())))))
-    
-    elif method == 'rouge':
+            similarities_with_index.append(
+                (i, 1 - (distance / max(len(target_tokens), len(sentence.split()))))
+            )
+
+    elif method == "rouge":
         rouge = Rouge()
         for i, sentence in enumerate(sentences):
             scores = rouge.get_scores(sentence, target)
-            rouge_score = scores[0].get(f'rouge-{n}', {}).get('f', 0)
+            rouge_score = scores[0].get(f"rouge-{n}", {}).get("f", 0)
             similarities_with_index.append((i, rouge_score))
-    
+
     else:
-        raise ValueError("Unsupported method. Choose 'jaccard', 'levenshtein', or 'rouge'.")
-    
+        raise ValueError(
+            "Unsupported method. Choose 'jaccard', 'levenshtein', or 'rouge'."
+        )
+
     similarities_with_index.sort(key=lambda x: x[1], reverse=True)
     return [index for index, score in similarities_with_index[:k]]

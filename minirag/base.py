@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import TypedDict, Union, Literal, Generic, TypeVar
-
+import os
 import numpy as np
 
 from .utils import EmbeddingFunc
@@ -15,18 +15,31 @@ T = TypeVar("T")
 
 @dataclass
 class QueryParam:
-    mode: Literal["light", "naive","mini"] = "mini"
+    mode: Literal["light", "naive", "mini"] = "mini"
     only_need_context: bool = False
+    only_need_prompt: bool = False
     response_type: str = "Multiple Paragraphs"
+    stream: bool = False
     # Number of top-k items to retrieve; corresponds to entities in "local" mode and relationships in "global" mode.
-    top_k: int = 5
+    top_k: int = int(os.getenv("TOP_K", "60"))
+    # Number of document chunks to retrieve.
+    # top_n: int = 10
     # Number of tokens for the original chunks.
-    max_token_for_text_unit: int = 2000
+    max_token_for_text_unit: int = 4000
     # Number of tokens for the relationship descriptions
-    max_token_for_global_context: int = 2000
+    max_token_for_global_context: int = 4000
     # Number of tokens for the entity descriptions
-    max_token_for_local_context: int = 2000#For Light/Graph
-    max_token_for_node_context: int = 500#For Mini, if too long, SLM may be fail to generate any response
+    max_token_for_local_context: int = 4000
+    hl_keywords: list[str] = field(default_factory=list)
+    ll_keywords: list[str] = field(default_factory=list)
+    # Conversation history support
+    conversation_history: list[dict] = field(
+        default_factory=list
+    )  # Format: [{"role": "user/assistant", "content": "message"}]
+    history_turns: int = (
+        3  # Number of complete conversation turns (user-assistant pairs) to consider
+    )
+
 
 @dataclass
 class StorageNameSpace:

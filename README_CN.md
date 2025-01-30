@@ -5,9 +5,9 @@
 
 本仓库是论文: **MiniRAG: Towards Extremely Simple Retrieval-Augmented Generation** 的代码仓库。
 
-<br />  
+<br />
 
-[Tianyu Fan](https://tianyufan0504.github.io/), [Jingyuan Wang](), [Xubin Ren](https://ren-xubin.github.io/), [Chao Huang](https://sites.google.com/view/chaoh)* (*Correspondence)<br />  
+[Tianyu Fan](https://tianyufan0504.github.io/), [Jingyuan Wang](), [Xubin Ren](https://ren-xubin.github.io/), [Chao Huang](https://sites.google.com/view/chaoh)* (*Correspondence)<br />
 </div>
 
 

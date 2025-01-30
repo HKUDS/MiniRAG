@@ -1,38 +1,33 @@
 accelerate
-aioboto3
 aiofiles
 aiohttp
-asyncpg
+configparser
+graspologic
+json_repair
 
 # database packages
-graspologic
-gremlinpython
-hnswlib
-nano-vectordb
-neo4j
 networkx
-
-numpy
-ollama
-openai
-oracledb
-psycopg-pool
-psycopg[binary,pool]
-pydantic
-pymilvus
-pymongo
-pymysql
-python-dotenv
-pyvis
-setuptools
-# lmdeploy[all]
-sqlalchemy
-tenacity
-json_repair
-rouge
 nltk
+
+# Basic modules
+numpy
+pipmaster
+pydantic
+
+# File manipulation libraries
+PyPDF2
+python-docx
+python-dotenv
+python-pptx
+rouge
+
+setuptools
+tenacity
+
+
+# LLM packages
 tiktoken
-torch
 tqdm
-transformers
 xxhash
+
+# Extra libraries are installed when needed using pipmaster

@@ -118,9 +118,6 @@ Output:
 """
 
 
-
-
-
 PROMPTS[
     "summarize_entity_descriptions"
 ] = """You are a helpful assistant responsible for generating a comprehensive summary of the data provided below.
@@ -145,11 +142,11 @@ PROMPTS[
 
 PROMPTS[
     "entiti_continue_extraction_mini"
-] = """MANY entities were missed in the last extraction.  
+] = """MANY entities were missed in the last extraction.
 After summarizing with all the information previously extracted, compared to the original text, it was noticed that the following information was mainly omitted:
 {omit}
 
-The types of entities that need to be added can be obtained from Entity_types, 
+The types of entities that need to be added can be obtained from Entity_types,
 or you can add them yourself.
 
 Entity_types: {entity_types}
@@ -157,7 +154,6 @@ Entity_types: {entity_types}
 
 Add them below using the same format:
 """
-
 
 
 PROMPTS["minirag_query2kwd"] = """---Role---
@@ -168,7 +164,7 @@ You are a helpful assistant tasked with identifying both answer-type and low-lev
 
 Given the query, list both answer-type and low-level keywords.
 answer_type_keywords focus on the type of the answer to the certain query, while low-level keywords focus on specific entities, details, or concrete terms.
-The answer_type_keywords must be selected from Answer type pool. 
+The answer_type_keywords must be selected from Answer type pool.
 This pool is in the form of a dictionary, where the key represents the Type you should choose from and the value represents the example samples.
 
 ---Instructions---

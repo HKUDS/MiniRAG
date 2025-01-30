@@ -18,7 +18,7 @@ LiHua-World is a dataset specifically designed for local RAG (Retrieval-Augmente
   - Social interactions
   - Fitness training
   - Entertainment activities
-  - Life affairs 
+  - Life affairs
   - ...
 ## Dataset Structure
 

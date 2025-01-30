@@ -1,0 +1,12 @@
+ascii_colors
+fastapi
+nest_asyncio
+numpy
+pipmaster
+python-dotenv
+python-multipart
+tenacity
+tiktoken
+torch
+tqdm
+uvicorn
