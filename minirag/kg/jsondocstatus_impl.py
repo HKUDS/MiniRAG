@@ -52,13 +52,13 @@ import os
 from dataclasses import dataclass
 from typing import Union, Dict
 
-from lightrag.utils import (
+from minirag.utils import (
     logger,
     load_json,
     write_json,
 )
 
-from lightrag.base import (
+from minirag.base import (
     DocStatus,
     DocProcessingStatus,
     DocStatusStorage,
