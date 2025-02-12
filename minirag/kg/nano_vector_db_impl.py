@@ -61,12 +61,12 @@ if not pm.is_installed("nano-vectordb"):
 from nano_vectordb import NanoVectorDB
 import time
 
-from lightrag.utils import (
+from minirag.utils import (
     logger,
     compute_mdhash_id,
 )
 
-from lightrag.base import (
+from minirag.base import (
     BaseVectorStorage,
 )
 
