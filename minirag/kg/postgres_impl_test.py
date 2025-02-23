@@ -12,7 +12,7 @@ if not pm.is_installed("asyncpg"):
 import asyncpg
 import psycopg
 from psycopg_pool import AsyncConnectionPool
-from lightrag.kg.postgres_impl import PostgreSQLDB, PGGraphStorage
+from minirag.kg.postgres_impl import PostgreSQLDB, PGGraphStorage
 
 DB = "rag"
 USER = "rag"

@@ -453,7 +453,7 @@ source /home/netman/minirag-xyj/venv/bin/activate
 lightrag-server
 ```
 
-Install lightrag.service in Linux.  Sample commands in Ubuntu server look like:
+Install minirag.service in Linux.  Sample commands in Ubuntu server look like:
 #Note: lightrag-server.service is the service file name, you can change it to minirag-server.service as needed.
 ```shell
 sudo cp lightrag-server.service /etc/systemd/system/

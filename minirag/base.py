@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from abc import abstractmethod
 from typing import Any, TypedDict, Optional, Union, Literal, Generic, TypeVar
 import os
 import numpy as np

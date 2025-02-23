@@ -10,10 +10,10 @@ if not pm.is_installed("pymongo"):
 from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Union, List, Tuple
-from lightrag.utils import logger
+from minirag.utils import logger
 
-from lightrag.base import BaseKVStorage
-from lightrag.base import BaseGraphStorage
+from minirag.base import BaseKVStorage
+from minirag.base import BaseGraphStorage
 
 
 @dataclass
@@ -437,4 +437,4 @@ class MongoGraphStorage(BaseGraphStorage):
         """
         Placeholder for demonstration, raises NotImplementedError.
         """
-        raise NotImplementedError("Node embedding is not used in lightrag.")
+        raise NotImplementedError("Node embedding is not used in minirag.")

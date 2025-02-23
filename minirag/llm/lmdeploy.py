@@ -48,7 +48,7 @@ if not pm.is_installed("lmdeploy"):
 if not pm.is_installed("tenacity"):
     pm.install("tenacity")
 
-from lightrag.exceptions import (
+from minirag.exceptions import (
     APIConnectionError,
     RateLimitError,
     APITimeoutError,

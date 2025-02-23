@@ -44,7 +44,7 @@ Features:
     - Remove nodes and edges from the graph
 
 Usage:
-    from lightrag.storage.networkx_storage import NetworkXStorage
+    from minirag.storage.networkx_storage import NetworkXStorage
 
 """
 

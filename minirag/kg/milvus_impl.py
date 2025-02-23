@@ -3,7 +3,7 @@ import os
 from tqdm.asyncio import tqdm as tqdm_async
 from dataclasses import dataclass
 import numpy as np
-from lightrag.utils import logger
+from minirag.utils import logger
 from ..base import BaseVectorStorage
 
 import pipmaster as pm

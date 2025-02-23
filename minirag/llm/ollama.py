@@ -61,7 +61,7 @@ from tenacity import (
     wait_exponential,
     retry_if_exception_type,
 )
-from lightrag.exceptions import (
+from minirag.exceptions import (
     APIConnectionError,
     RateLimitError,
     APITimeoutError,

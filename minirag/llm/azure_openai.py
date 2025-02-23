@@ -63,7 +63,7 @@ from tenacity import (
     retry_if_exception_type,
 )
 
-from lightrag.utils import (
+from minirag.utils import (
     wrap_embedding_func_with_attrs,
     locate_json_string_body_from_string,
     safe_unicode_decode,
