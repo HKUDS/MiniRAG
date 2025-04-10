@@ -365,8 +365,6 @@ class MiniRAG:
             ).items()
             for dp in self.chunking_func(
                 status_doc.content,
-                split_by_character,
-                split_by_character_only,
                 self.chunk_overlap_token_size,
                 self.chunk_token_size,
                 self.tiktoken_model_name,

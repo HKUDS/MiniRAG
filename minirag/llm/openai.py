@@ -101,7 +101,8 @@ async def openai_complete_if_cache(
 ) -> str:
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
-
+    if base_url==None:
+        base_url = os.environ["OPENAI_API_BASE"]
     openai_async_client = (
         AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
     )
