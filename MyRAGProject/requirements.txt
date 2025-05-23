@@ -1,0 +1,14 @@
+# Placeholder for project dependencies
+# Add libraries like:
+# pandas
+# scikit-learn
+torch
+transformers
+# faiss-cpu  # or faiss-gpu if you have a CUDA-enabled GPU
+sentence-transformers
+# PyPDF2
+python-dotenv
+# langchain
+# beautifulsoup4
+# requests
+pytest
