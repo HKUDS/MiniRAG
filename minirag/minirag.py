@@ -59,6 +59,10 @@ STORAGES = {
     "PGGraphStorage": ".kg.postgres_impl",
     "GremlinStorage": ".kg.gremlin_impl",
     "PGDocStatusStorage": ".kg.postgres_impl",
+    "WeaviateVectorStorage": ".kg.weaviate_impl",
+    "WeaviateKVStorage": ".kg.weaviate_impl",
+    "WeaviateGraphStorage": ".kg.weaviate_impl",
+    "run_sync": ".kg.weaviate_impl",
 }
 
 # future KG integrations
