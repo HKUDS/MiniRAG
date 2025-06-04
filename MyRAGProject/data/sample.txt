@@ -1,0 +1,6 @@
+This is the first paragraph of our sample text file. It contains a few sentences to demonstrate the loading and processing capabilities of the RAG system. We aim to chunk this text into meaningful segments.
+
+The second paragraph provides more content. RAG systems often benefit from well-defined document chunks. These chunks are then vectorized and stored in a database for efficient retrieval. Proper chunking strategy is crucial for retrieval accuracy.
+
+Finally, the third paragraph concludes this sample document. It's a short document, but sufficient for initial testing of the data processing pipeline. Future enhancements could include handling various file formats like PDF, DOCX, or even web URLs.
+The RAG model will use these chunks to find relevant information.
