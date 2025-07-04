@@ -42,6 +42,7 @@ STORAGES = {
     "NanoVectorDBStorage": ".kg.nano_vector_db_impl",
     "JsonDocStatusStorage": ".kg.jsondocstatus_impl",
     "Neo4JStorage": ".kg.neo4j_impl",
+    "MemgraphStorage": ".kg.memgraph_impl",
     "OracleKVStorage": ".kg.oracle_impl",
     "OracleGraphStorage": ".kg.oracle_impl",
     "OracleVectorDBStorage": ".kg.oracle_impl",
