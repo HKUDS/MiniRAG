@@ -26,7 +26,7 @@ Did Wolfgang ask Li Hua if she wants to have pizza for dinner after work today b
 Did Jennifer challenge Li Hua to do 60 pull-ups in a training session after she challenged him to do 100 pushups?,Yes,20261104_18:00<and>20261129_19:00,Multi
 Did Jake share common knowledge about offside in soccer with Li Hua before he passed practical techniques to Li Hua on how to avoid offside for a forward?,Yes,20261105_15:00<and>20261130_11:30,Multi
 Did Wolfgang arrive in Hong Kong after he informed Li Hua about his upcoming trip?,Yes,20261219_19:00<and>20261223_23:00,Multi
-"What time does Li Hua watch the movie ""Overwatch 3""?",20260122,20260122_17:00<and>20260121_13:00,Multi
+"What time does Li Hua watch the movie ""Overwatch 3""?",7 PM,20260122_17:00<and>20260121_13:00,Multi
 "Who does Li Hua go to watch the movie ""Overwatch 3"" with?",Wolfgang,20260122_17:00<and>20260121_13:00,Multi
 Has Wolfgang ever been to Hong Kong?,Yes,20261219_19:00<and>20261220_20:00<and>20261221_12:00<and>20261228_10:00,Multi
 Who knows about Wolfgang going to Hong Kong?,LiHua & Chae & Yuriko,20261219_19:00<and>20261220_20:00<and>20261221_12:00<and>20261228_10:00,Multi
@@ -61,7 +61,7 @@ Did Li Hua ask Adam Smith about placing potted plants in the basement before he 
 Did Li Hua ask Wolfgang for advice on renovating the basement before he invited Adam Smith to check the progress of the basement renovation?,Yes,20260219_20:10<and>20260223_17:00<and>20260707_16:00,Multi
 Did Li Hua tell Wolfgang about making a new friend before Yuriko reminded the group members to meet for the music festival?,Yes,20260302_18:00<and>20260318_14:27<and>20261212_12:00,Multi
 "Did Yuriko tell Li Hua about booking a seat at the ""Central Perk"" cafe before Li Hua sent her a message to confirm the details of their next meeting?",Yes,20260225_15:00<and>20260303_09:30,Multi
-What time does Li Hua check in with Adam about moving in?,5:30 PM,20260105_14:00,Single
+What time does Li Hua check in with Adam about moving in?,20260105_14:00,20260105_14:00,Single
 When was the first time Li Hua had dinner with Wolfgang this year?,20260108,20260108_11:00,Single
 Where was the first time Li Hua had dinner with Wolfgang this year?,the cozy café downtown,20260108_11:00,Single
 What time is Li Hua's lunch with Wolfgang Schulz at the cozy café downtown?,20260108,20260108_11:00,Single
@@ -73,7 +73,7 @@ When does Adam confirm the plumber will arrive?,tomorrow at 10 AM,20260106_15:00
 What does Li Hua ask Adam about the door hinge?,a small repair,20260107_15:00,Single
 What is the name of the gym that Wolfgang recommended LiHua to go to?,FitZone,20260111_08:00,Single
 When does Li Hua ask Jennifer Moore about adjusting the protein in her meal plan?,20260122,20260122_15:00<and>20260122_15:00,Multi
-"What time does Li Hua watch the movie ""Overwatch 3""?",20260122,20260122_17:00<and>20260121_13:00,Multi
+"What time does Li Hua watch the movie ""Overwatch 3""?",7 PM,20260122_17:00<and>20260121_13:00,Multi
 "Who does Li Hua go to watch the movie ""Overwatch 3"" with?",Wolfgang,20260122_17:00<and>20260121_13:00,Multi
 When does Li Hua plan to celebrate Chinese Lunar New Year?,20260118,20260113_11:00,Single
 What does Li Hua plan to celebrate Chinese Lunar New Year?,dumplings,20260113_11:00,Single
@@ -95,7 +95,7 @@ What are some of Jennifer Moore's tips for dealing with muscle soreness?,hydrati
 Why did Li Hua ask for extra exercises to do at home?,to complement his training schedule,20260205_13:00,Single
 What exercises did Jennifer Moore suggest Li Hua do at home?,bodyweight squats& plank holds&push-ups&lunges&glute bridges,20260205_13:00,Single
 What is Adam Smith's condition for Li Hua to add decorations to the basement?,must be reversible and not damage anything,20260219_20:00,Single
-When was the first time Wolfgang went to Li Hua's basement?,20260221,20260221_15:00,Single
+When was the first time Wolfgang went to Li Hua's basement?,20260222,20260221_15:00,Single
 What ideas did Wolfgang Schulz suggest for Li Hua's basement practice spot?,good lighting&soundproofing&a comfy chair,20260219_20:10,Single
 Why did Adam remind Li Hua not to play guitar late at night?,a few neighbors have mentioned they're hearing guitar music late at night,20260216_10:00,Single
 What type of ambiance does YurikoYamamoto want for her studio's homepage?,more welcoming and engaging,20260223_15:00,Single
@@ -155,7 +155,7 @@ Which two specific pastries does Hailey Johnson recommend for Mother's Day?,Rasp
 What type of stretches does JenniferMoore suggest before and after workouts?,Dynamic stretches before and static stretches after,20260510_11:30,Single
 When is the web design seminar at Wolfgang's company happening?,Thursday at 3 PM,20260511_11:00,Single
 What is Li Hua looking forward to trying from the summer promotion?,Fruity ice cream flavors and a mango-coconut pastry,20260514_14:00,Single
-What did Li Hua enjoy the most about the restaurant that he and Wolfgang visited for dinner on 20260514?,The pasta dish and the dessert,20260514_22:00,Single
+What did Li Hua enjoy the most about the restaurant that he and Wolfgang visited for dinner on 20260514?,The pasta dish,20260514_22:00,Single
 Why is Chae Song-hwa unable to join the rehearsal?,She has to attend a medical lecture,20260515_10:00,Single
 What type of lighting is preferred for the seating area in the community garden?,Soft white lights,20260516_10:00,Single
 When is the construction of the garden supposed to start?,This Wednesday (20260520),20260518_10:00,Single
