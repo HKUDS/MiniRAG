@@ -163,7 +163,7 @@
     },
     "27": {
         "question": "What time does Li Hua watch the movie \"Overwatch 3\"?",
-        "answer": "20260122",
+        "answer": "7 PM",
         "evidence": "20260122_17:00<and>20260121_13:00",
         "type": "Multi"
     },
@@ -373,7 +373,7 @@
     },
     "62": {
         "question": "What time does Li Hua check in with Adam about moving in?",
-        "answer": "5:30 PM",
+        "answer": "20260105_14:00",
         "evidence": "20260105_14:00",
         "type": "Single"
     },
@@ -445,7 +445,7 @@
     },
     "74": {
         "question": "What time does Li Hua watch the movie \"Overwatch 3\"?",
-        "answer": "20260122",
+        "answer": "7 PM",
         "evidence": "20260122_17:00<and>20260121_13:00",
         "type": "Multi"
     },
@@ -577,7 +577,7 @@
     },
     "96": {
         "question": "When was the first time Wolfgang went to Li Hua's basement?",
-        "answer": "20260221",
+        "answer": "20260222",
         "evidence": "20260221_15:00",
         "type": "Single"
     },
@@ -937,7 +937,7 @@
     },
     "156": {
         "question": "What did Li Hua enjoy the most about the restaurant that he and Wolfgang visited for dinner on 20260514?",
-        "answer": "The pasta dish and the dessert",
+        "answer": "The pasta dish",
         "evidence": "20260514_22:00",
         "type": "Single"
     },
