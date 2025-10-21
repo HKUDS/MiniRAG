@@ -23,7 +23,7 @@ The Code Repository: **MiniRAG: Towards Extremely Simple Retrieval-Augmented Gen
 
 ## 🎉 News
 - [x] [2025.02.27]🎯📢Now you can use `pip install minirag-hku` to run our code!
-- [x] [2025.02.14]🎯📢Now MiniRAG supports 10+ heterogeneous graph databases, including Neo4j, PostgreSQL, TiDB, etc. Happy valentine's day!🌹🌹🌹
+- [x] [2025.02.14]🎯📢Now MiniRAG supports 10+ heterogeneous graph databases, including Neo4j, Memgraph, PostgreSQL, TiDB, etc. Happy valentine's day!🌹🌹🌹
 - [x] [2025.02.05]🎯📢Our team has released [VideoRAG](https://github.com/HKUDS/VideoRAG) understanding extremely long-context videos.
 - [x] [2025.02.01]🎯📢Now MiniRAG supports API&Docker deployment. see [This](./minirag/api/README.md) for more details.
 
@@ -109,6 +109,7 @@ All the code can be found in the `./reproduce` directory.
 │   ├── kg
 │   │   ├── __init__.py
 │   │   ├── neo4j_impl.py
+│   │   ├── memgraph_impl.py
 │   │   └── oracle_impl.py
 │   ├── __init__.py
 │   ├── base.py

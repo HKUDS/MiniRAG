@@ -25,6 +25,10 @@ rouge
 setuptools
 tenacity
 
+# Testing packages
+pytest
+pytest-asyncio
+
 
 # LLM packages
 tiktoken
