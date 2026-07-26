@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import unicodedata
 from dataclasses import dataclass
 from functools import wraps
 from hashlib import md5
@@ -64,8 +65,15 @@ def compute_args_hash(*args, cache_type: str | None = None) -> str:
 
 
 def clean_text(text: str) -> str:
-    """Clean text by removing null bytes (0x00) and whitespace"""
-    return text.strip().replace("\x00", "")
+    """Clean text by removing null bytes (0x00) and whitespace, and normalising
+    its Unicode composition.
+
+    See :func:`clean_str` for why the NFC pass matters. Here it also decides
+    document identity: ``doc_id`` is an md5 of this function's output, so
+    without it the same document typed on one keyboard and copied from another
+    hashes differently and is indexed twice.
+    """
+    return unicodedata.normalize("NFC", text.strip().replace("\x00", ""))
 
 
 def get_content_summary(content: str, max_length: int = 100) -> str:
@@ -179,7 +187,15 @@ def clean_str(input: Any) -> str:
 
     result = html.unescape(input.strip())
     # https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python
-    return re.sub(r"[\x00-\x1f\x7f-\x9f]", "", result)
+    result = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", result)
+    # Accented scripts have more than one valid encoding of the same text: "ệ"
+    # is either U+1EC7 or "e" + U+0323 + U+0302. Both render identically, so the
+    # difference is invisible, but the strings compare unequal and hash
+    # differently — and these strings become identity keys (graph node ids and
+    # the md5 behind every `ent-` vector id). Vietnamese hits this constantly
+    # because sources disagree: IMEs emit NFC, the macOS filesystem emits NFD.
+    # Pure-ASCII text is unaffected, which is why this went unnoticed.
+    return unicodedata.normalize("NFC", result)
 
 
 def is_float_regex(value):
