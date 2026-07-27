@@ -33,6 +33,8 @@ from .base import (
     StorageNameSpace,
     QueryParam,
     DocStatus,
+    DocProcessingStatus,
+    TextChunkSchema,
 )
 
 
@@ -353,40 +355,55 @@ class MiniRAG:
         if isinstance(ids, str):
             ids = [ids]
 
-        await self.apipeline_enqueue_documents(input, ids)
-        await self.apipeline_process_enqueue_documents(
-            split_by_character, split_by_character_only
-        )
-
-        # Perform additional entity extraction as per original ainsert logic
-        inserting_chunks = {
-            compute_mdhash_id(dp["content"], prefix="chunk-"): {
-                **dp,
-                "full_doc_id": doc_id,
-            }
-            for doc_id, status_doc in (
-                await self.doc_status.get_docs_by_status(DocStatus.PROCESSED)
-            ).items()
-            for dp in self.chunking_func(
-                status_doc.content,
-                self.chunk_overlap_token_size,
-                self.chunk_token_size,
-                self.tiktoken_model_name,
+        extraction_failures = []
+        try:
+            await self.apipeline_enqueue_documents(input, ids)
+            documents_to_extract = await self.apipeline_process_enqueue_documents(
+                split_by_character, split_by_character_only
             )
-        }
 
-        if inserting_chunks:
-            logger.info("Performing entity extraction on newly processed chunks")
-            await extract_entities(
-                inserting_chunks,
-                knowledge_graph_inst=self.chunk_entity_relation_graph,
-                entity_vdb=self.entities_vdb,
-                entity_name_vdb=self.entity_name_vdb,
-                relationships_vdb=self.relationships_vdb,
-                global_config=asdict(self),
-            )
- 
-        await self._insert_done()
+            for doc_id, (status_doc, inserting_chunks) in (
+                documents_to_extract.items()
+            ):
+                try:
+                    logger.info(
+                        "Performing entity extraction for %s newly processed chunks",
+                        len(inserting_chunks),
+                    )
+                    await extract_entities(
+                        inserting_chunks,
+                        knowledge_graph_inst=self.chunk_entity_relation_graph,
+                        entity_vdb=self.entities_vdb,
+                        entity_name_vdb=self.entity_name_vdb,
+                        relationships_vdb=self.relationships_vdb,
+                        global_config=asdict(self),
+                    )
+                except Exception as error:
+                    await self._update_document_status(
+                        doc_id,
+                        status_doc,
+                        DocStatus.FAILED,
+                        len(inserting_chunks),
+                        error=str(error),
+                    )
+                    extraction_failures.append((doc_id, error))
+                    logger.exception("Entity extraction failed for document %s", doc_id)
+                    continue
+
+                await self._update_document_status(
+                    doc_id,
+                    status_doc,
+                    DocStatus.PROCESSED,
+                    len(inserting_chunks),
+                )
+        finally:
+            await self._insert_done()
+
+        if extraction_failures:
+            failed_doc_ids = ", ".join(doc_id for doc_id, _ in extraction_failures)
+            raise RuntimeError(
+                f"Entity extraction failed for document(s): {failed_doc_ids}"
+            ) from extraction_failures[0][1]
 
     async def apipeline_enqueue_documents(
         self, input: str | list[str], ids: list[str] | None = None
@@ -448,15 +465,39 @@ class MiniRAG:
         await self.doc_status.upsert(new_docs)
         logger.info(f"Stored {len(new_docs)} new unique documents")
 
+    async def _update_document_status(
+        self,
+        doc_id: str,
+        status_doc: DocProcessingStatus,
+        status: DocStatus,
+        chunks_count: int,
+        error: str | None = None,
+    ) -> None:
+        status_data = {
+            "status": status,
+            "chunks_count": chunks_count,
+            "content": status_doc.content,
+            "content_summary": status_doc.content_summary,
+            "content_length": status_doc.content_length,
+            "created_at": status_doc.created_at,
+            "updated_at": datetime.now().isoformat(),
+        }
+        if error is not None:
+            status_data["error"] = error
+        await self.doc_status.upsert({doc_id: status_data})
+
     async def apipeline_process_enqueue_documents(
         self,
         split_by_character: str | None = None,
         split_by_character_only: bool = False,
-    ) -> None:
+    ) -> dict[str, tuple[DocProcessingStatus, dict[str, TextChunkSchema]]]:
         """
-        Process pending documents by splitting them into chunks, processing
-        each chunk for entity and relation extraction, and updating the
-        document status.
+        Stage pending documents for graph extraction.
+
+        Documents remain in PROCESSING until entity and relation extraction
+        completes in ``ainsert``. The returned mapping contains only chunks
+        staged during this invocation, so already processed documents are not
+        extracted again.
         """
         processing_docs, failed_docs, pending_docs = await asyncio.gather(
             self.doc_status.get_docs_by_status(DocStatus.PROCESSING),
@@ -471,13 +512,14 @@ class MiniRAG:
         }
         if not to_process_docs:
             logger.info("No documents to process")
-            return
+            return {}
 
         docs_batches = [
             list(to_process_docs.items())[i : i + self.max_parallel_insert]
             for i in range(0, len(to_process_docs), self.max_parallel_insert)
         ]
         logger.info(f"Number of batches to process: {len(docs_batches)}")
+        documents_to_extract = {}
 
         for batch_idx, docs_batch in enumerate(docs_batches):
             for doc_id, status_doc in docs_batch:
@@ -493,25 +535,33 @@ class MiniRAG:
                         self.tiktoken_model_name,
                     )
                 }
-                await asyncio.gather(
-                    self.chunks_vdb.upsert(chunks),
-                    self.full_docs.upsert({doc_id: {"content": status_doc.content}}),
-                    self.text_chunks.upsert(chunks),
+                await self._update_document_status(
+                    doc_id,
+                    status_doc,
+                    DocStatus.PROCESSING,
+                    len(chunks),
                 )
-                await self.doc_status.upsert(
-                    {
-                        doc_id: {
-                            "status": DocStatus.PROCESSED,
-                            "chunks_count": len(chunks),
-                            "content": status_doc.content,
-                            "content_summary": status_doc.content_summary,
-                            "content_length": status_doc.content_length,
-                            "created_at": status_doc.created_at,
-                            "updated_at": datetime.now().isoformat(),
-                        }
-                    }
-                )
-        logger.info("Document processing pipeline completed")
+                try:
+                    await asyncio.gather(
+                        self.chunks_vdb.upsert(chunks),
+                        self.full_docs.upsert(
+                            {doc_id: {"content": status_doc.content}}
+                        ),
+                        self.text_chunks.upsert(chunks),
+                    )
+                except Exception as error:
+                    await self._update_document_status(
+                        doc_id,
+                        status_doc,
+                        DocStatus.FAILED,
+                        len(chunks),
+                        error=str(error),
+                    )
+                    raise
+                documents_to_extract[doc_id] = (status_doc, chunks)
+
+        logger.info("Document staging pipeline completed")
+        return documents_to_extract
 
     async def _insert_done(self):
         tasks = []
