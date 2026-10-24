@@ -34,10 +34,7 @@ class WeaviateVectorStorage(BaseVectorStorage):
         try:
             near_text = {"concepts": [query]}
             response = await run_sync(
-                self.client.query.get, "Document", ["content"]
-            )
-            response = (
-                self.client.query.get("Document", ["content"])
+                lambda: self.client.query.get("Document", ["content"])
                 .with_near_text(near_text)
                 .with_limit(top_k)
                 .do()
