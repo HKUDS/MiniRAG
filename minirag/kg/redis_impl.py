@@ -36,16 +36,19 @@ class RedisKVStorage(BaseKVStorage):
             pipe.get(f"{self.namespace}:{id}")
         results = await pipe.execute()
 
-        if fields:
-            # Filter fields if specified
+        values = [
+            json.loads(result) if result is not None else None for result in results
+        ]
+        if fields is not None:
+            # Filter fields if specified, preserving missing IDs and empty projections.
             return [
                 {field: value.get(field) for field in fields if field in value}
-                if (value := json.loads(result))
+                if value is not None
                 else None
-                for result in results
+                for value in values
             ]
 
-        return [json.loads(result) if result else None for result in results]
+        return values
 
     async def filter_keys(self, data: list[str]) -> set[str]:
         pipe = self._redis.pipeline()
