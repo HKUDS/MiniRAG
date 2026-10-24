@@ -153,6 +153,6 @@ async def ollama_embed(texts: list[str], embed_model, **kwargs) -> np.ndarray:
         else {"Content-Type": "application/json"}
     )
     kwargs["headers"] = headers
-    ollama_client = ollama.Client(**kwargs)
-    data = ollama_client.embed(model=embed_model, input=texts)
+    ollama_client = ollama.AsyncClient(**kwargs)
+    data = await ollama_client.embed(model=embed_model, input=texts)
     return data["embeddings"]
