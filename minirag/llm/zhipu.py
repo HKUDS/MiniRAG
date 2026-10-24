@@ -40,6 +40,7 @@ __version__ = "1.0.0"
 __author__ = "lightrag Team"
 __status__ = "Production"
 
+import asyncio
 import sys
 import re
 import json
@@ -126,7 +127,9 @@ async def zhipu_complete_if_cache(
         k: v for k, v in kwargs.items() if k not in ["hashing_kv", "keyword_extraction"]
     }
 
-    response = client.chat.completions.create(model=model, messages=messages, **kwargs)
+    response = await asyncio.to_thread(
+        client.chat.completions.create, model=model, messages=messages, **kwargs
+    )
 
     return response.choices[0].message.content
 
@@ -238,7 +241,9 @@ async def zhipu_embedding(
     embeddings = []
     for text in texts:
         try:
-            response = client.embeddings.create(model=model, input=[text], **kwargs)
+            response = await asyncio.to_thread(
+                client.embeddings.create, model=model, input=[text], **kwargs
+            )
             embeddings.append(response.data[0].embedding)
         except Exception as e:
             raise Exception(f"Error calling ChatGLM Embedding API: {str(e)}")
