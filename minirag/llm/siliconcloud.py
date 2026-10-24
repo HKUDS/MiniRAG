@@ -38,6 +38,7 @@ __version__ = "1.0.0"
 __author__ = "lightrag Team"
 __status__ = "Production"
 
+import asyncio
 import sys
 
 if sys.version_info < (3, 9):
@@ -50,11 +51,6 @@ import pipmaster as pm  # Pipmaster for dynamic library install
 if not pm.is_installed("lmdeploy"):
     pm.install("lmdeploy")
 
-from openai import (
-    APIConnectionError,
-    RateLimitError,
-    APITimeoutError,
-)
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -69,11 +65,15 @@ import base64
 import struct
 
 
+class _SiliconCloudRateLimitError(Exception):
+    """Transient rate limit returned by the SiliconCloud embedding API."""
+
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=4, max=60),
     retry=retry_if_exception_type(
-        (RateLimitError, APIConnectionError, APITimeoutError)
+        (aiohttp.ClientError, asyncio.TimeoutError, _SiliconCloudRateLimitError)
     ),
 )
 async def siliconcloud_embedding(
@@ -95,6 +95,8 @@ async def siliconcloud_embedding(
     base64_strings = []
     async with aiohttp.ClientSession() as session:
         async with session.post(base_url, headers=headers, json=payload) as response:
+            if response.status == 429:
+                raise _SiliconCloudRateLimitError("SiliconCloud rate limit exceeded")
             content = await response.json()
             if "code" in content:
                 raise ValueError(content)
