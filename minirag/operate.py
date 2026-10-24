@@ -364,15 +364,6 @@ async def extract_entities(
     if entity_vdb is not None:
         data_for_vdb = {
             compute_mdhash_id(dp["entity_name"], prefix="ent-"): {
-                "content": dp["entity_name"] + dp["description"],
-                "entity_name": dp["entity_name"],
-            }
-            for dp in all_entities_data
-        }
-        await entity_vdb.upsert(data_for_vdb)
-    if entity_vdb is not None:
-        data_for_vdb = {
-            compute_mdhash_id(dp["entity_name"], prefix="ent-"): {
                 "content": dp["entity_name"] + " " + dp["description"],
                 "entity_name": dp["entity_name"],
             }
