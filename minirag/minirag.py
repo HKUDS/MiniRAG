@@ -335,7 +335,8 @@ class MiniRAG:
             self.llm_response_cache,
         ]:
             # set client
-            storage.db = db_client
+            if storage is not None:
+                storage.db = db_client
 
     def insert(self, string_or_strings):
         loop = always_get_an_event_loop()
