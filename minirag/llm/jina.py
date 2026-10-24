@@ -67,12 +67,11 @@ async def jina_embed(
     base_url: str = None,
     api_key: str = None,
 ) -> np.ndarray:
-    if api_key:
-        os.environ["JINA_API_KEY"] = api_key
+    key = api_key or os.environ["JINA_API_KEY"]
     url = "https://api.jina.ai/v1/embeddings" if not base_url else base_url
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ['JINA_API_KEY']}",
+        "Authorization": f"Bearer {key}",
     }
     data = {
         "model": "jina-embeddings-v3",
