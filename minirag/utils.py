@@ -1,4 +1,3 @@
-import asyncio
 import html
 import io
 import csv
@@ -7,7 +6,6 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from functools import wraps
 from hashlib import md5
 from typing import Any, Union, List
 import xml.etree.ElementTree as ET
@@ -18,9 +16,10 @@ from nltk.metrics import edit_distance
 from rouge import Rouge
 from nltk.translate.bleu_score import sentence_bleu
 from sentence_transformers import SentenceTransformer
-from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.tokenize import word_tokenize
 from nltk.translate.bleu_score import SmoothingFunction
+
+from .concurrency import limit_async_func_call as limit_async_func_call
 
 ENCODER = None
 
@@ -92,28 +91,6 @@ def convert_response_to_json(response: str) -> dict:
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON: {json_str}")
         raise e from None
-
-
-def limit_async_func_call(max_size: int, waitting_time: float = 0.0001):
-    """Add restriction of maximum async calling times for a async func"""
-
-    def final_decro(func):
-        """Not using async.Semaphore to aovid use nest-asyncio"""
-        __current_size = 0
-
-        @wraps(func)
-        async def wait_func(*args, **kwargs):
-            nonlocal __current_size
-            while __current_size >= max_size:
-                await asyncio.sleep(waitting_time)
-            __current_size += 1
-            result = await func(*args, **kwargs)
-            __current_size -= 1
-            return result
-
-        return wait_func
-
-    return final_decro
 
 
 def wrap_embedding_func_with_attrs(**kwargs):
