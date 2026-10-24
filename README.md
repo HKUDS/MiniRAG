@@ -48,10 +48,10 @@ MiniRAG employs a streamlined workflow built on the key components: heterogeneou
 cd MiniRAG
 pip install -e .
 ```
-* Install from PyPI (Our code is based on [LightRAG](https://github.com/HKUDS/LightRAG), so you can install it directly)
+* Install from PyPI (MiniRAG is published as `minirag-hku`)
 
 ```bash
-pip install lightrag-hku
+pip install minirag-hku
 ```
 
 ## Quick Start

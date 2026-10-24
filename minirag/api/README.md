@@ -5,9 +5,9 @@ MiniRAG now provides optional API support through FastAPI servers that add RAG c
 ### 1. Installation from PyPI
 
 ```bash
-pip install "lightrag-hku[api]"
+pip install "minirag-hku[api]"
 ```
-Note: we use the same package for the MiniRAG.
+Note: this installs the `minirag-hku` distribution with its API dependencies.
 
 ### 2. Installation from Source (Development)
 
@@ -261,7 +261,7 @@ minirag-server --help
 
 Note: If you don't need the API functionality, you can install the base package without API support using:
 ```bash
-pip install lightrag-hku
+pip install minirag-hku
 ```
 
 ## API Endpoints

@@ -42,10 +42,10 @@ MiniRAG 采用基于两个关键组件构建的精简工作流程:异构图索�
 cd MiniRAG
 pip install -e .
 ```
-* 从 PyPI 安装（我们的代码基于 [LightRAG](https://github.com/HKUDS/LightRAG)，因此可以直接安装）
+* 从 PyPI 安装（MiniRAG 的包名为 `minirag-hku`）
 
 ```bash
-pip install lightrag-hku
+pip install minirag-hku
 ```
 
 ## 快速开始
