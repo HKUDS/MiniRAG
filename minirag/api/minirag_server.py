@@ -560,19 +560,21 @@ class DocumentManager:
     def scan_directory_for_new_files(self) -> List[Path]:
         """Scan input directory for new files"""
         new_files = []
-        for ext in self.supported_extensions:
-            for file_path in self.input_dir.rglob(f"*{ext}"):
-                if file_path not in self.indexed_files:
-                    new_files.append(file_path)
+        for file_path in self.input_dir.rglob("*"):
+            if (
+                self.is_supported_file(file_path.name)
+                and file_path not in self.indexed_files
+            ):
+                new_files.append(file_path)
         return new_files
 
     def scan_directory(self) -> List[Path]:
         """Scan input directory for new files"""
-        new_files = []
-        for ext in self.supported_extensions:
-            for file_path in self.input_dir.rglob(f"*{ext}"):
-                new_files.append(file_path)
-        return new_files
+        return [
+            file_path
+            for file_path in self.input_dir.rglob("*")
+            if self.is_supported_file(file_path.name)
+        ]
 
     def mark_as_indexed(self, file_path: Path):
         """Mark a file as indexed"""
