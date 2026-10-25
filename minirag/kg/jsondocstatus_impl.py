@@ -92,32 +92,32 @@ class JsonDocStatusStorage(DocStatusStorage):
             counts[doc["status"]] += 1
         return counts
 
+    def _to_doc_processing_status(
+        self, doc_id: str, value: dict
+    ) -> DocProcessingStatus:
+        data = value.copy()
+        if "content" not in data and "content_summary" in data:
+            data["content"] = data["content_summary"]
+        data["status"] = DocStatus(data["status"])
+        return DocProcessingStatus(**data)
+
     async def get_docs_by_status(
         self, status: DocStatus
     ) -> dict[str, DocProcessingStatus]:
         """Get all documents with a specific status"""
         result = {}
-        for k, v in self._data.items():
-            if v["status"] == status.value:
-                try:
-                    # Make a copy of the data to avoid modifying the original
-                    data = v.copy()
-                    # If content is missing, use content_summary as content
-                    if "content" not in data and "content_summary" in data:
-                        data["content"] = data["content_summary"]
-                    result[k] = DocProcessingStatus(**data)
-                except KeyError as e:
-                    logger.error(f"Missing required field for document {k}: {e}")
-                    continue
+        for doc_id, value in self._data.items():
+            if value["status"] == status.value:
+                result[doc_id] = self._to_doc_processing_status(doc_id, value)
         return result
 
     async def get_failed_docs(self) -> Dict[str, DocProcessingStatus]:
         """Get all failed documents"""
-        return {k: v for k, v in self._data.items() if v["status"] == DocStatus.FAILED}
+        return await self.get_docs_by_status(DocStatus.FAILED)
 
     async def get_pending_docs(self) -> Dict[str, DocProcessingStatus]:
         """Get all pending documents"""
-        return {k: v for k, v in self._data.items() if v["status"] == DocStatus.PENDING}
+        return await self.get_docs_by_status(DocStatus.PENDING)
 
     async def index_done_callback(self):
         """Save data to file after indexing"""
@@ -138,7 +138,10 @@ class JsonDocStatusStorage(DocStatusStorage):
 
     async def get(self, doc_id: str) -> Union[DocProcessingStatus, None]:
         """Get document status by ID"""
-        return self._data.get(doc_id)
+        value = self._data.get(doc_id)
+        if value is None:
+            return None
+        return self._to_doc_processing_status(doc_id, value)
 
     async def delete(self, doc_ids: list[str]):
         """Delete document status by IDs"""
