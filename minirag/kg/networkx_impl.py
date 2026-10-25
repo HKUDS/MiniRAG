@@ -157,11 +157,15 @@ class NetworkXStorage(BaseGraphStorage):
         return list(types), list(types_with_case)
 
 
-    async def get_node_from_types(self,type_list)  -> Union[dict, None]:
+    async def get_node_from_types(self, type_list) -> list[dict]:
+        normalized_types = {
+            node_type.strip().strip('\"').casefold()
+            for node_type in type_list
+        }
         node_list = []
-        for name, arrt in self._graph.nodes(data = True):
-            node_type = arrt.get('entity_type').strip('\"')
-            if node_type in type_list:
+        for name, attributes in self._graph.nodes(data=True):
+            node_type = attributes["entity_type"]
+            if node_type.strip().strip('\"').casefold() in normalized_types:
                 node_list.append(name)
         node_datas = await asyncio.gather(
             *[self.get_node(name) for name in node_list]
