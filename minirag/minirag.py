@@ -358,34 +358,6 @@ class MiniRAG:
             split_by_character, split_by_character_only
         )
 
-        # Perform additional entity extraction as per original ainsert logic
-        inserting_chunks = {
-            compute_mdhash_id(dp["content"], prefix="chunk-"): {
-                **dp,
-                "full_doc_id": doc_id,
-            }
-            for doc_id, status_doc in (
-                await self.doc_status.get_docs_by_status(DocStatus.PROCESSED)
-            ).items()
-            for dp in self.chunking_func(
-                status_doc.content,
-                self.chunk_overlap_token_size,
-                self.chunk_token_size,
-                self.tiktoken_model_name,
-            )
-        }
-
-        if inserting_chunks:
-            logger.info("Performing entity extraction on newly processed chunks")
-            await extract_entities(
-                inserting_chunks,
-                knowledge_graph_inst=self.chunk_entity_relation_graph,
-                entity_vdb=self.entities_vdb,
-                entity_name_vdb=self.entity_name_vdb,
-                relationships_vdb=self.relationships_vdb,
-                global_config=asdict(self),
-            )
- 
         await self._insert_done()
 
     async def apipeline_enqueue_documents(
@@ -498,6 +470,15 @@ class MiniRAG:
                     self.full_docs.upsert({doc_id: {"content": status_doc.content}}),
                     self.text_chunks.upsert(chunks),
                 )
+                if chunks:
+                    await extract_entities(
+                        chunks,
+                        knowledge_graph_inst=self.chunk_entity_relation_graph,
+                        entity_vdb=self.entities_vdb,
+                        entity_name_vdb=self.entity_name_vdb,
+                        relationships_vdb=self.relationships_vdb,
+                        global_config=asdict(self),
+                    )
                 await self.doc_status.upsert(
                     {
                         doc_id: {

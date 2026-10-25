@@ -186,7 +186,12 @@ async def _merge_edges_then_upsert(
             split_string_by_multi_markers(already_edge["keywords"], [GRAPH_FIELD_SEP])
         )
 
-    weight = sum([dp["weight"] for dp in edges_data] + already_weights)
+    existing_source_ids = set(already_source_ids)
+    new_source_edges = [
+        dp for dp in edges_data if dp["source_id"] not in existing_source_ids
+    ]
+    # Shared content-hash chunks and extraction retries retain the same source identity.
+    weight = sum([dp["weight"] for dp in new_source_edges] + already_weights)
     description = GRAPH_FIELD_SEP.join(
         sorted(set([dp["description"] for dp in edges_data] + already_description))
     )
