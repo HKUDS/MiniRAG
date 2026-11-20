@@ -186,7 +186,12 @@ async def _merge_edges_then_upsert(
             split_string_by_multi_markers(already_edge["keywords"], [GRAPH_FIELD_SEP])
         )
 
-    weight = sum([dp["weight"] for dp in edges_data] + already_weights)
+    existing_source_ids = set(already_source_ids)
+    new_source_edges = [
+        dp for dp in edges_data if dp["source_id"] not in existing_source_ids
+    ]
+    # Shared content-hash chunks and extraction retries retain the same source identity.
+    weight = sum([dp["weight"] for dp in new_source_edges] + already_weights)
     description = GRAPH_FIELD_SEP.join(
         sorted(set([dp["description"] for dp in edges_data] + already_description))
     )
@@ -361,15 +366,6 @@ async def extract_entities(
         )
         return None
 
-    if entity_vdb is not None:
-        data_for_vdb = {
-            compute_mdhash_id(dp["entity_name"], prefix="ent-"): {
-                "content": dp["entity_name"] + dp["description"],
-                "entity_name": dp["entity_name"],
-            }
-            for dp in all_entities_data
-        }
-        await entity_vdb.upsert(data_for_vdb)
     if entity_vdb is not None:
         data_for_vdb = {
             compute_mdhash_id(dp["entity_name"], prefix="ent-"): {
@@ -1083,7 +1079,7 @@ async def naive_query(
     use_model_func = global_config["llm_model_func"]
     results = await chunks_vdb.query(query, top_k=query_param.top_k)
     if not len(results):
-        return PROMPTS["fail_response"]
+        return None if query_param.only_need_context else PROMPTS["fail_response"]
     chunks_ids = [r["id"] for r in results]
 
     chunks = await text_chunks_db.get_by_ids(chunks_ids)
