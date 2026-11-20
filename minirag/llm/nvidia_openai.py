@@ -42,7 +42,6 @@ __status__ = "Production"
 
 
 import sys
-import os
 
 if sys.version_info < (3, 9):
     pass
@@ -93,12 +92,12 @@ async def nvidia_openai_embed(
     trunc: str = "NONE",  # NONE or START or END
     encode: str = "float",  # float or base64
 ) -> np.ndarray:
+    client_options = {}
     if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key
-
-    openai_async_client = (
-        AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
-    )
+        client_options["api_key"] = api_key
+    if base_url is not None:
+        client_options["base_url"] = base_url
+    openai_async_client = AsyncOpenAI(**client_options)
     response = await openai_async_client.embeddings.create(
         model=model,
         input=texts,

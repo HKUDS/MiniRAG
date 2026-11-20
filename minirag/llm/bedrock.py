@@ -210,7 +210,7 @@ async def bedrock_embed(
             )
 
             response = await bedrock_async_client.invoke_model(
-                model=model,
+                modelId=model,
                 body=body,
                 accept="application/json",
                 contentType="application/json",
