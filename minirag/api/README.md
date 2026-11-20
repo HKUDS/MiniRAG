@@ -5,9 +5,9 @@ MiniRAG now provides optional API support through FastAPI servers that add RAG c
 ### 1. Installation from PyPI
 
 ```bash
-pip install "lightrag-hku[api]"
+pip install "minirag-hku[api]"
 ```
-Note: we use the same package for the MiniRAG.
+Note: this installs the `minirag-hku` distribution with its API dependencies.
 
 ### 2. Installation from Source (Development)
 
@@ -45,8 +45,8 @@ For example, you have the possibility to use ollama for the embedding and openai
 
 #### For OpenAI Alike Server
 - Requires environment variables setup or command line argument provided
-- Environment variables: LLM_BINDING=ollama, LLM_BINDING_HOST, LLM_MODEL, LLM_BINDING_API_KEY
-- Command line arguments: --llm-binding=ollama, --llm-binding-host, --llm-model, --llm-binding-api-key
+- Environment variables: LLM_BINDING=openai, LLM_BINDING_HOST, LLM_MODEL, LLM_BINDING_API_KEY
+- Command line arguments: --llm-binding=openai, --llm-binding-host, --llm-model, --llm-binding-api-key
 - Default connection is https://api.openai.com/v1 if not priveded
 
 #### For Azure OpenAI Server
@@ -261,7 +261,7 @@ minirag-server --help
 
 Note: If you don't need the API functionality, you can install the base package without API support using:
 ```bash
-pip install lightrag-hku
+pip install minirag-hku
 ```
 
 ## API Endpoints

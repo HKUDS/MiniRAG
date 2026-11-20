@@ -45,10 +45,10 @@ MiniRAGは、異種グラフインデックスと軽量なグラフベースの�
 cd MiniRAG
 pip install -e .
 ```
-* PyPIからインストール（私たちのコードは[LightRAG](https://github.com/HKUDS/LightRAG)に基づいているため、直接インストールできます）
+* PyPIからインストール（MiniRAG のパッケージ名は `minirag-hku` です）
 
 ```bash
-pip install lightrag-hku
+pip install minirag-hku
 ```
 
 ## クイックスタート
