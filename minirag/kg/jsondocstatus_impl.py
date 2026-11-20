@@ -92,23 +92,23 @@ class JsonDocStatusStorage(DocStatusStorage):
             counts[doc["status"]] += 1
         return counts
 
+    def _to_doc_processing_status(
+        self, doc_id: str, value: dict
+    ) -> DocProcessingStatus:
+        data = value.copy()
+        if "content" not in data and "content_summary" in data:
+            data["content"] = data["content_summary"]
+        data["status"] = DocStatus(data["status"])
+        return DocProcessingStatus(**data)
+
     async def get_docs_by_status(
         self, status: DocStatus
     ) -> dict[str, DocProcessingStatus]:
         """Get all documents with a specific status"""
         result = {}
-        for k, v in self._data.items():
-            if v["status"] == status.value:
-                try:
-                    # Make a copy of the data to avoid modifying the original
-                    data = v.copy()
-                    # If content is missing, use content_summary as content
-                    if "content" not in data and "content_summary" in data:
-                        data["content"] = data["content_summary"]
-                    result[k] = DocProcessingStatus(**data)
-                except KeyError as e:
-                    logger.error(f"Missing required field for document {k}: {e}")
-                    continue
+        for doc_id, value in self._data.items():
+            if value["status"] == status.value:
+                result[doc_id] = self._to_doc_processing_status(doc_id, value)
         return result
 
     async def get_failed_docs(self) -> Dict[str, DocProcessingStatus]:
